@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sisterhood Safety Alert</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button id="themeToggle" class="theme-btn"><i class="fas fa-moon"></i></button>
+
+    <div class="container glass-panel">
+        <header>
+            <div class="empowerment-badge"><i class="fas fa-hands-holding-child"></i> Built for Women, By Women</div>
+            <h1><i class="fas fa-shield-heart"></i> Sisterhood <span class="highlight">Safety</span></h1>
+            <p>Your personal emergency response network</p>
+        </header>
+
+        <main>
+            <div class="sos-wrapper">
+                <button id="sosBtn" class="sos-btn">
+                    <div class="sos-content">
+                        <i class="fas fa-bell"></i>
+                        <span>SOS</span>
+                    </div>
+                </button>
+                <div class="pulse-ring"></div>
+            </div>
+
+            <button id="stopAlarmBtn" class="stop-btn hidden">
+                <i class="fas fa-volume-xmark"></i> Stop Alarm
+            </button>
+            <audio id="alarmAudio" src="alarm.mp3" preload="auto" loop></audio>
+        </main>
+
+        <section class="status-section">
+            <div id="statusMessage" class="status-msg"></div>
+            <div id="locationDetails" class="location-details hidden">
+                <h3><i class="fas fa-location-dot"></i> Current Location</h3>
+                <p><strong>Latitude:</strong> <span id="lat">---</span></p>
+                <p><strong>Longitude:</strong> <span id="lng">---</span></p>
+                <a id="mapsLink" href="#" target="_blank" class="maps-btn"><i class="fas fa-map"></i> Open in Google Maps</a>
+            </div>
+            <div id="loader" class="loader hidden">
+                <div class="spinner"></div>
+                <span>Fetching location & contacting your sisterhood...</span>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section class="contacts-section">
+            <h2><i class="fas fa-user-shield"></i> Your Safety Network</h2>
+            <p class="section-desc">Add the emails of trusted family or friends who should be automatically alerted.</p>
+            <form id="contactForm" class="contact-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="contactName" placeholder="Trusted Person's Name" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="contactEmail" placeholder="Their Email Address" required>
+                </div>
+                <button type="submit" class="add-btn"><i class="fas fa-plus"></i> Add to Network</button>
+            </form>
+            <div class="contacts-list" id="contactsList">
+                <div class="loader-small hidden" id="contactsLoader"><div class="spinner-small"></div></div>
+                <!-- Contacts rendered here -->
+            </div>
+        </section>
+
+        <section class="info-section">
+            <p><strong>Alerts Triggered:</strong> <span id="alertCount">0</span></p>
+            <p id="lastAlertTime" class="last-alert">Connecting to server...</p>
+        </section>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <footer>
+        <p>Designed and Developed by <span class="highlight">Akanksha Patekar & Khushi Agrawal</span></p>
+    </footer>
+
+    <!-- EmailJS integration -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        (function() {
+            emailjs.init("lGcgeB6tbDei9rpdO");
+        })();
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
