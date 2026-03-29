@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,83 +8,97 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize SQLite database
-const dbPath = process.env.DB_PATH || path.resolve(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error("Database error:", err.message);
-    else console.log("Connected to SQLite database.");
+// Initialize PostgreSQL database
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false }
+});
+
+pool.connect((err) => {
+    if (err) console.error("Database connection error. Ensure DATABASE_URL is set:", err.message);
+    else console.log("Connected to PostgreSQL database.");
 });
 
 // Create tables
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS contacts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS alerts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        latitude REAL,
-        longitude REAL,
-        map_url TEXT,
-        sent_count INTEGER
-    )`);
-});
+const initTables = async () => {
+    try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS contacts (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL
+        )`);
+        
+        await pool.query(`CREATE TABLE IF NOT EXISTS alerts (
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            latitude REAL,
+            longitude REAL,
+            map_url TEXT,
+            sent_count INTEGER
+        )`);
+        console.log("Database tables checked/created.");
+    } catch (err) {
+        console.error("Error creating tables:", err.message);
+    }
+};
+
+initTables();
 
 // --- Contact Routes ---
-app.get('/api/contacts', (req, res) => {
-    db.all("SELECT * FROM contacts", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+app.get('/api/contacts', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM contacts");
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/contacts', (req, res) => {
+app.post('/api/contacts', async (req, res) => {
     const { name, email } = req.body;
     if (!name || !email) return res.status(400).json({ error: 'Name and email required' });
     
-    const stmt = db.prepare("INSERT INTO contacts (name, email) VALUES (?, ?)");
-    stmt.run([name, email], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: this.lastID, name, email });
-    });
-    stmt.finalize();
+    try {
+        const result = await pool.query("INSERT INTO contacts (name, email) VALUES ($1, $2) RETURNING id, name, email", [name, email]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/contacts/:id', (req, res) => {
+app.delete('/api/contacts/:id', async (req, res) => {
     const id = req.params.id;
-    const stmt = db.prepare("DELETE FROM contacts WHERE id = ?");
-    stmt.run(id, function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ deleted: this.changes });
-    });
-    stmt.finalize();
+    try {
+        const result = await pool.query("DELETE FROM contacts WHERE id = $1", [id]);
+        res.json({ deleted: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // --- Alert Routes ---
-app.get('/api/alerts', (req, res) => {
-    db.all("SELECT * FROM alerts ORDER BY id DESC", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/alerts', async (req, res) => {
+    try {
+        const result = await pool.query("SELECT * FROM alerts ORDER BY id DESC");
         res.json({
-            count: rows.length,
-            lastAlert: rows.length > 0 ? rows[0] : null
+            count: result.rowCount,
+            lastAlert: result.rowCount > 0 ? result.rows[0] : null
         });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/alerts', (req, res) => {
+app.post('/api/alerts', async (req, res) => {
     const { latitude, longitude, map_url, sent_count } = req.body;
-    const stmt = db.prepare("INSERT INTO alerts (latitude, longitude, map_url, sent_count) VALUES (?, ?, ?, ?)");
-    stmt.run([latitude, longitude, map_url, sent_count], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ id: this.lastID, latitude, longitude, map_url, sent_count });
-    });
-    stmt.finalize();
+    try {
+        const result = await pool.query("INSERT INTO alerts (latitude, longitude, map_url, sent_count) VALUES ($1, $2, $3, $4) RETURNING id, latitude, longitude, map_url, sent_count", [latitude, longitude, map_url, sent_count]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`You can now open 'index.html' locally to use the backend.`);
 });
