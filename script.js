@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://women-safety-alert-system-in9g.onrender.com/api';
 
 // --- DOM Elements ---
 const sosBtn = document.getElementById('sosBtn');
