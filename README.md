@@ -84,4 +84,4 @@ If you wish to configure the application to send emails to your own personal Gma
 6. In `script.js` line 230, replace the parameters inside `emailjs.send("service_x", "template_x", ...)` with your new exact IDs.
 
 ---
-*Designed & Developed by Akshayni Ashok Jagtap*
+*Designed & Developed by Vinay Jadhav*
